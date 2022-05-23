@@ -26,7 +26,22 @@ app
   .start({ port: PORT });
 
 async function handleRegistration(server) {
-  // Take input from server body, validate, and insert into users table
+  const { email, username, password, passwordConformation } = await server.body;
+  if (validateRegistrationCredentials(email, username, password, passwordConformation)) {
+    const salt = await bcrypt.genSalt(8);
+    const passwordEncrypted = await hashPassword(password, salt);
+    await userDataClient.queryArray(
+      "INSERT INTO users (email, username, encrypted_password, salt, created_at, updated_at) VALUES (1$, 2$, 3$, 4$, NOW(), NOW())",
+      [email, username, passwordEncrypted, salt]
+    );
+    return server.json({ response: "Registration successful!" }, 200);
+  }
+  return server.json(
+    {
+      response: "Registration unsuccessful, check passwords match and email is valid.",
+    },
+    400
+  );
 }
 
 async function handleLogin(server) {
@@ -39,6 +54,8 @@ async function handleLogout(server) {
 
 async function retrieveSearchData(server) {
   // Query world bank data based on user search conditions and return data
+  const searchData = await worldDataClient.queryObject`SELECT * FROM series`;
+  return server.json(searchData);
 }
 
 async function storeUserSearch(server) {
@@ -49,3 +66,19 @@ async function retrieveUserSearch(server) {
   // Return the history of the user based on the user Id (retrieved using cookies).
   // If the admin is logged in return history of all users
 }
+
+function validateRegistrationCredentials(email, username, password, passwordConformation) {
+  const duplicateEmailCheck = userDataClient.queryArray("SELECT * FROM users WHERE email = 1$", [email]);
+  const duplicateUsernameCheck = userDataClient.queryArray("SELECT * FROM users WHERE username = 1$", [username]);
+  if (
+    duplicateEmailCheck.length < 1 &&
+    duplicateUsernameCheck.length < 1 &&
+    password === passwordConformation &&
+    password.length > 0
+  ) {
+    return true;
+  }
+  return false;
+}
+
+console.log(`Server running on http://localhost:${PORT}`);
