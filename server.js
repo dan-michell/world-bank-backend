@@ -1,11 +1,17 @@
 import { Application } from "https://deno.land/x/abc@v1.3.3/mod.ts";
-import { DB } from "https://deno.land/x/sqlite/mod.ts";
+import { Client } from "https://deno.land/x/postgres@v0.11.3/mod.ts";
 import { abcCors } from "https://deno.land/x/cors/mod.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 import { v4 } from "https://deno.land/std@0.140.0/uuid/mod.ts";
 
-const db = new DB("./user-data.db");
-// const dbData = new DB("./database.sqlite")
+const worldDataClient = new Client(
+  "postgres://czreijar:TJ2StTuQIl2CoRoinQTwPxk8pBGfdf6t@kandula.db.elephantsql.com/czreijar"
+);
+const userDataClient = new Client(
+  "postgres://fngiwpog:6WF15PtQfkrnPrJ9APx-uAUfvlEOD5dm@tyke.db.elephantsql.com/fngiwpog"
+);
+await worldDataClient.connect();
+await userDataClient.connect();
 const app = new Application();
 const PORT = 8080;
 
