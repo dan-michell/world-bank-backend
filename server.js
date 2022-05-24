@@ -48,7 +48,7 @@ async function handleLogin(server) {
   const { username, password } = await server.body;
   const isAuthorisedInfo = await loginAuthentication(username, password);
   if (isAuthorisedInfo[0]) {
-    const userId = isAuthorisedInfo[1][0].id;
+    const userId = isAuthorisedInfo[1].rows[0].id;
     const sessionId = await createSessionId(userId);
     server.setCookie({
       name: "sessionId",
@@ -114,13 +114,13 @@ async function validateRegistrationCredentials(email, username, password, passwo
 }
 
 async function loginAuthentication(username, password) {
-  const existingUserCheck = await userDataClient.queryArray({
+  const existingUserCheck = await userDataClient.queryObject({
     text: "SELECT * FROM users WHERE username = $1",
     args: [username],
   });
-  if (existingUserCheck.length > 0) {
-    const userSalt = existingUserCheck[0].salt;
-    const userHashedPassword = existingUserCheck[0].encrypted_password;
+  if (existingUserCheck.rowCount > 0) {
+    const userSalt = existingUserCheck.rows[0].salt;
+    const userHashedPassword = existingUserCheck.rows[0].encrypted_password;
     const passwordEncrypted = await hashPassword(password, userSalt);
     if (passwordEncrypted === userHashedPassword) {
       return [true, existingUserCheck];
