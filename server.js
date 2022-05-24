@@ -31,7 +31,7 @@ async function handleRegistration(server) {
     const salt = await bcrypt.genSalt(8);
     const passwordEncrypted = await hashPassword(password, salt);
     await userDataClient.queryArray(
-      "INSERT INTO users (email, username, encrypted_password, salt, created_at, updated_at) VALUES (1$, 2$, 3$, 4$, NOW(), NOW())",
+      "INSERT INTO users (email, username, encrypted_password, salt, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())",
       [email, username, passwordEncrypted, salt]
     );
     return server.json({ response: "Registration successful!" }, 200);
@@ -62,7 +62,14 @@ async function handleLogin(server) {
 }
 
 async function handleLogout(server) {
-  // Delete entry from sessions where the userId === the userId of the user currently logged in.
+  const sessionId = server.cookies.sessionId;
+  const user = getCurrentUser(sessionId);
+  if (user.length > 0) {
+    const userId = user[0].id;
+    db.query("DELETE FROM sessions WHERE user_id = ?", [userId]);
+    return server.json({ response: "Successfully logged out" }, 200);
+  }
+  return server.json({ response: "Not logged in" }, 200);
 }
 
 async function retrieveSearchData(server) {
@@ -81,8 +88,8 @@ async function retrieveUserSearch(server) {
 }
 
 function validateRegistrationCredentials(email, username, password, passwordConformation) {
-  const duplicateEmailCheck = userDataClient.queryArray("SELECT * FROM users WHERE email = 1$", [email]);
-  const duplicateUsernameCheck = userDataClient.queryArray("SELECT * FROM users WHERE username = 1$", [username]);
+  const duplicateEmailCheck = userDataClient.queryArray("SELECT * FROM users WHERE email = $1", [email]);
+  const duplicateUsernameCheck = userDataClient.queryArray("SELECT * FROM users WHERE username = $1", [username]);
   if (
     duplicateEmailCheck.length < 1 &&
     duplicateUsernameCheck.length < 1 &&
@@ -95,7 +102,7 @@ function validateRegistrationCredentials(email, username, password, passwordConf
 }
 
 async function loginAuthentication(username, password) {
-  const existingUserCheck = userDataClient.queryArray("SELECT * FROM users WHERE username = 1$", [username]);
+  const existingUserCheck = userDataClient.queryArray("SELECT * FROM users WHERE username = $1", [username]);
   if (existingUserCheck.length > 0) {
     const userSalt = existingUserCheck[0].salt;
     const userHashedPassword = existingUserCheck[0].encrypted_password;
@@ -114,11 +121,18 @@ async function hashPassword(password, salt) {
 
 async function createSessionId(userId) {
   const sessionId = crypto.randomUUID();
-  userDataClient.queryArray("INSERT INTO sessions (uuid, user_id, created_at) VALUES (1$, 2$, NOW())", [
+  userDataClient.queryArray("INSERT INTO sessions (uuid, user_id, created_at) VALUES ($1, $2, NOW())", [
     sessionId,
     userId,
   ]);
   return sessionId;
+}
+
+function getCurrentUser(sessionId) {
+  const query =
+    "SELECT * FROM users JOIN sessions ON users.id = sessions.user_id WHERE sessions.created_at < NOW() + INTERVAL '7 DAYS' AND sessions.uuid = $1";
+  const user = userDataClient.queryArray(query, [sessionId]);
+  return user;
 }
 
 console.log(`Server running on http://localhost:${PORT}`);
