@@ -45,7 +45,20 @@ async function handleRegistration(server) {
 }
 
 async function handleLogin(server) {
-  // Take input from server body, validate, create user cookie, insert into sessions
+  const { username, password } = await server.body;
+  const isAuthorisedInfo = await loginAuthentication(username, password);
+  if (isAuthorisedInfo[0]) {
+    const userId = isAuthorisedInfo[1][0].id;
+    const sessionId = await createSessionId(userId);
+    server.setCookie({
+      name: "sessionId",
+      value: sessionId,
+    });
+    return server.json({
+      response: "Login success!",
+    });
+  }
+  return server.json({ response: "Login failed, check details and try again." });
 }
 
 async function handleLogout(server) {
@@ -79,6 +92,33 @@ function validateRegistrationCredentials(email, username, password, passwordConf
     return true;
   }
   return false;
+}
+
+async function loginAuthentication(username, password) {
+  const existingUserCheck = userDataClient.queryArray("SELECT * FROM users WHERE username = 1$", [username]);
+  if (existingUserCheck.length > 0) {
+    const userSalt = existingUserCheck[0].salt;
+    const userHashedPassword = existingUserCheck[0].encrypted_password;
+    const passwordEncrypted = await hashPassword(password, userSalt);
+    if (passwordEncrypted === userHashedPassword) {
+      return [true, existingUserCheck];
+    }
+  }
+  return [false];
+}
+
+async function hashPassword(password, salt) {
+  const hashedPassword = await bcrypt.hash(password, salt);
+  return hashedPassword;
+}
+
+async function createSessionId(userId) {
+  const sessionId = crypto.randomUUID();
+  userDataClient.queryArray("INSERT INTO sessions (uuid, user_id, created_at) VALUES (1$, 2$, NOW())", [
+    sessionId,
+    userId,
+  ]);
+  return sessionId;
 }
 
 console.log(`Server running on http://localhost:${PORT}`);
