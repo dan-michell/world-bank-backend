@@ -66,11 +66,11 @@ async function handleLogin(server) {
 
 async function handleLogout(server) {
   const sessionId = server.cookies.sessionId;
-  const user = getCurrentUser(sessionId);
-  if (user.length > 0) {
-    const userId = user[0].id;
+  const user = await getCurrentUser(sessionId);
+  if (user.rowCount > 0) {
+    const userId = user.rows[0].id;
     await userDataClient.queryArray({
-      text: "DELETE FROM sessions WHERE user_id = ?",
+      text: "DELETE FROM sessions WHERE user_id = $1",
       args: [userId],
     });
     return server.json({ response: "Successfully logged out" }, 200);
@@ -146,7 +146,7 @@ async function createSessionId(userId) {
 async function getCurrentUser(sessionId) {
   const query =
     "SELECT * FROM users JOIN sessions ON users.id = sessions.user_id WHERE sessions.created_at < NOW() + INTERVAL '7 DAYS' AND sessions.uuid = $1";
-  const user = await userDataClient.queryArray({
+  const user = await userDataClient.queryObject({
     text: query,
     args: [sessionId],
   });
