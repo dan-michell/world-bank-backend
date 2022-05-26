@@ -88,7 +88,7 @@ async function handleLogout(server) {
 async function retrieveSearchData(server) {
   const { country, indicator } = server.queryParams;
   // Query world bank data based on user search conditions and return data
-  const searchData = await worldDataClient.queryObject`SELECT * FROM series`;
+  const searchData = await worldDataClient.queryArray(`SELECT * FROM series`);
   return server.json(searchData);
 }
 
