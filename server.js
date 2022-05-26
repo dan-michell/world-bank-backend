@@ -65,7 +65,6 @@ async function handleLogin(server) {
     server.setCookie({
       name: "sessionId",
       value: sessionId,
-      domain: "https://628fb7abb0e5c5007803acea--dan-michell-makes-great-sites.netlify.app/",
     });
     return server.json(
       {
@@ -93,7 +92,6 @@ async function handleLogout(server) {
 
 async function retrieveSearchData(server) {
   const { country, indicator, startYear, endYear } = server.queryParams;
-  console.log(country, indicator, startYear, endYear);
   const searchData = await worldDataClient.queryObject({
     text: "SELECT * FROM indicators WHERE countryname = $1 AND indicatorname = $2 AND year BETWEEN $3 AND $4",
     args: [country, indicator, Number(startYear), Number(endYear)],
