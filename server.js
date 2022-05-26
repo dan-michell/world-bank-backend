@@ -65,6 +65,7 @@ async function handleLogin(server) {
     server.setCookie({
       name: "sessionId",
       value: sessionId,
+      domain: "https://628fb7abb0e5c5007803acea--dan-michell-makes-great-sites.netlify.app/",
     });
     return server.json(
       {
