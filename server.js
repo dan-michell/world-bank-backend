@@ -20,7 +20,7 @@ const app = new Application();
 const PORT = Deno.env.get("PORT");
 
 app
-  .use(abcCors({ credentials: true }))
+  .use(abcCors({ origin: "http://localhost:3000", credentials: true }))
   .get("/", (server) => {
     return server.json({ hello: "there" });
   })
@@ -86,10 +86,13 @@ async function handleLogout(server) {
 }
 
 async function retrieveSearchData(server) {
-  const { country, indicator } = server.queryParams;
-  // Query world bank data based on user search conditions and return data
-  const searchData = await worldDataClient.queryArray(`SELECT * FROM series`);
-  return server.json(searchData);
+  const { country, indicator, startYear, endYear } = server.queryParams;
+  console.log(country, indicator, startYear, endYear);
+  const searchData = await worldDataClient.queryObject({
+    text: "SELECT * FROM indicators WHERE countryname = $1 AND indicatorname = $2 AND year BETWEEN $3 AND $4",
+    args: [country, indicator, Number(startYear), Number(endYear)],
+  });
+  return searchData;
 }
 
 async function storeUserSearch(server) {
