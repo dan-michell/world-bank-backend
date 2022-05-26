@@ -17,17 +17,20 @@ const userDataClient = new Client(
 await worldDataClient.connect();
 await userDataClient.connect();
 const app = new Application();
-const PORT = 8080;
+const PORT = Deno.env.get("PORT");
 
 app
-  .use(abcCors({ origin: "http://localhost:3000", credentials: true }))
+  .use(abcCors({ credentials: true }))
+  .get("/", (server) => {
+    return server.json({ hello: "there" });
+  })
   .post("/users", handleRegistration)
   .post("/sessions", handleLogin)
   .delete("/sessions", handleLogout)
   .get("/search", retrieveSearchData)
   .post("/history", storeUserSearch)
   .get("/history", retrieveUserSearch)
-  .start({ port: PORT });
+  .start({ port: Number(PORT) });
 
 async function handleRegistration(server) {
   const { email, username, password, passwordConformation } = await server.body;
