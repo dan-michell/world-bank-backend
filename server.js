@@ -99,6 +99,7 @@ async function storeUserSearch(server) {
 async function retrieveUserSearch(server) {
   // Return the history of the user based on the user Id (retrieved using cookies).
   // If the admin is logged in return history of all users
+  return server.json({ history: [] });
 }
 
 async function validateRegistrationCredentials(email, username, password, passwordConformation) {
