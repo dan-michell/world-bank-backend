@@ -22,7 +22,7 @@ const PORT = Deno.env.get("PORT");
 app
   .use(
     abcCors({
-      origin: "https://628fb7abb0e5c5007803acea--dan-michell-makes-great-sites.netlify.app",
+      origin: ["https://628fb7abb0e5c5007803acea--dan-michell-makes-great-sites.netlify.app", "http://localhost:3000"],
       credentials: true,
     })
   )
