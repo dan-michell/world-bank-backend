@@ -30,7 +30,7 @@ app
     return server.json({ hello: "there" });
   })
   .post("/users", handleRegistration)
-  .post("/sessions", handleLogin)
+  .post("sessions", handleLogin)
   .delete("/sessions", handleLogout)
   .get("/search", retrieveSearchData)
   .post("/history", storeUserSearch)
