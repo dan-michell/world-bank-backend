@@ -20,7 +20,12 @@ const app = new Application();
 const PORT = Deno.env.get("PORT");
 
 app
-  .use(abcCors({ origin: "http://localhost:3000", credentials: true }))
+  .use(
+    abcCors({
+      origin: "https://628fb45136ecda28702b16d4--dan-michell-makes-great-sites.netlify.app/",
+      credentials: true,
+    })
+  )
   .get("/", (server) => {
     return server.json({ hello: "there" });
   })
