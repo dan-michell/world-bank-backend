@@ -3,6 +3,10 @@ import { Client } from "https://deno.land/x/postgres@v0.11.3/mod.ts";
 import { abcCors } from "https://deno.land/x/cors/mod.ts";
 import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
 import { v4 } from "https://deno.land/std@0.140.0/uuid/mod.ts";
+import { config } from "https://deno.land/x/dotenv/mod.ts";
+
+const DENO_ENV = Deno.env.get("DENO_ENV") ?? "development";
+config({ path: `./.env.${DENO_ENV}`, export: true });
 
 const worldDataClient = new Client(
   "postgres://czreijar:TJ2StTuQIl2CoRoinQTwPxk8pBGfdf6t@kandula.db.elephantsql.com/czreijar"
@@ -79,6 +83,7 @@ async function handleLogout(server) {
 }
 
 async function retrieveSearchData(server) {
+  const { country, indicator } = server.queryParams;
   // Query world bank data based on user search conditions and return data
   const searchData = await worldDataClient.queryObject`SELECT * FROM series`;
   return server.json(searchData);
