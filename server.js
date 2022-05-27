@@ -94,6 +94,9 @@ async function retrieveSearchData(server) {
       text: "SELECT * FROM indicators WHERE countryname = $1 AND indicatorname = $2 AND year BETWEEN $3 AND $4",
       args: [country, indicator, Number(startYear), Number(endYear)],
     });
+    if (searchData.rowCount < 1) {
+      return server.json({ error: "Unable to retrieve search data" }, 400);
+    }
     await storeUserSearch(sessionId, country, indicator, startYear, endYear);
     return searchData;
   }
