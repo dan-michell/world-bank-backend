@@ -39,7 +39,7 @@ app
 
 async function handleRegistration(server) {
   const { email, username, password, passwordConformation } = await server.body;
-  if (validateRegistrationCredentials(email, username, password, passwordConformation)) {
+  if (await validateRegistrationCredentials(email, username, password, passwordConformation)) {
     const salt = await bcrypt.genSalt(8);
     const passwordEncrypted = await hashPassword(password, salt);
     await userDataClient.queryArray({
