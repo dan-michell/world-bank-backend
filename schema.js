@@ -15,10 +15,13 @@ await client.queryArray`CREATE TABLE users (
 
 await client.queryArray`CREATE TABLE history (
     id SERIAL PRIMARY KEY,
+    user_id INT,
     country_name TEXT,
     indicator TEXT,
-    year_range TEXT,
-    created_at DATE NOT NULL
+    start_year INT,
+    end_year INT,
+    created_at DATE NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
   )`;
 
 await client.queryArray`CREATE TABLE sessions (

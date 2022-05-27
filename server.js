@@ -26,14 +26,10 @@ app
       credentials: true,
     })
   )
-  .get("/", (server) => {
-    return server.json({ hello: "there" });
-  })
   .post("/users", handleRegistration)
   .post("/sessions", handleLogin)
   .delete("/sessions", handleLogout)
   .get("/search", retrieveSearchData)
-  .post("/history", storeUserSearch)
   .get("/history", retrieveUserSearch)
   .start({ port: Number(PORT) });
 
@@ -92,21 +88,42 @@ async function handleLogout(server) {
 
 async function retrieveSearchData(server) {
   const { country, indicator, startYear, endYear } = server.queryParams;
-  const searchData = await worldDataClient.queryObject({
-    text: "SELECT * FROM indicators WHERE countryname = $1 AND indicatorname = $2 AND year BETWEEN $3 AND $4",
-    args: [country, indicator, Number(startYear), Number(endYear)],
-  });
-  return searchData;
+  const sessionId = server.cookies.sessionId;
+  if (country && indicator && startYear && endYear) {
+    const searchData = await worldDataClient.queryObject({
+      text: "SELECT * FROM indicators WHERE countryname = $1 AND indicatorname = $2 AND year BETWEEN $3 AND $4",
+      args: [country, indicator, Number(startYear), Number(endYear)],
+    });
+    await storeUserSearch(sessionId, country, indicator, startYear, endYear);
+    return searchData;
+  }
+  return server.json({ error: "Missing search parameters" }, 400);
 }
 
-async function storeUserSearch(server) {
-  // Insert the conditions of the user search into history to be able to be used again
+async function storeUserSearch(sessionId, country, indicator, startYear, endYear) {
+  const user = await getCurrentUser(sessionId);
+  if (user.rowCount > 0) {
+    const userId = user.rows[0].id;
+    await userDataClient.queryObject({
+      text: "INSERT INTO history (user_id country_name, indicator, start_year, end_year, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+      args: [userId, country, indicator, Number(startYear), Number(endYear)],
+    });
+  }
+  return server.json({ error: "Unable to store search, user not logged in" });
 }
 
 async function retrieveUserSearch(server) {
-  // Return the history of the user based on the user Id (retrieved using cookies).
-  // If the admin is logged in return history of all users
-  return server.json({ history: [] });
+  const sessionId = server.cookies.sessionId;
+  const user = await getCurrentUser(sessionId);
+  if (user.rowCount > 0) {
+    const userId = user.rows[0].id;
+    const previousUserSearches = await queryObject({
+      text: "SELECT * FROM history WHERE user_id = $1",
+      args: [userId],
+    });
+    return previousUserSearches;
+  }
+  return server.json({ error: "Unable to retrieve search information, user not logged in" });
 }
 
 async function validateRegistrationCredentials(email, username, password, passwordConformation) {
