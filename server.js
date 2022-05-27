@@ -46,7 +46,7 @@ async function handleRegistration(server) {
   }
   return server.json(
     {
-      response: "Registration unsuccessful, check passwords match and email is valid.",
+      response: "Registration unsuccessful, check passwords match, longer than 5 characters and email is valid.",
     },
     400
   );
@@ -104,12 +104,17 @@ async function storeUserSearch(sessionId, country, indicator, startYear, endYear
   const user = await getCurrentUser(sessionId);
   if (user.rowCount > 0) {
     const userId = user.rows[0].id;
-    await userDataClient.queryObject({
-      text: "INSERT INTO history (user_id country_name, indicator, start_year, end_year, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
-      args: [userId, country, indicator, Number(startYear), Number(endYear)],
+    const duplicateSearchCheck = await userDataClient.queryObject({
+      text: "SELECT * FROM history WHERE user_id = $1 AND country_name = $2 AND indicator = $3",
+      args: [userId, country, indicator],
     });
+    if (duplicateSearchCheck.rowCount < 1) {
+      await userDataClient.queryObject({
+        text: "INSERT INTO history (user_id, country_name, indicator, start_year, end_year, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+        args: [userId, country, indicator, Number(startYear), Number(endYear)],
+      });
+    }
   }
-  return server.json({ error: "Unable to store search, user not logged in" });
 }
 
 async function retrieveUserSearch(server) {
@@ -117,11 +122,11 @@ async function retrieveUserSearch(server) {
   const user = await getCurrentUser(sessionId);
   if (user.rowCount > 0) {
     const userId = user.rows[0].id;
-    const previousUserSearches = await queryObject({
+    const previousUserSearches = await userDataClient.queryObject({
       text: "SELECT * FROM history WHERE user_id = $1",
       args: [userId],
     });
-    return previousUserSearches;
+    return previousUserSearches.rows;
   }
   return server.json({ error: "Unable to retrieve search information, user not logged in" });
 }
@@ -139,7 +144,7 @@ async function validateRegistrationCredentials(email, username, password, passwo
     duplicateEmailCheck.rowCount < 1 &&
     duplicateUsernameCheck.rowCount < 1 &&
     password === passwordConformation &&
-    password.length > 0
+    password.length > 5
   ) {
     return true;
   }
