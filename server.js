@@ -122,10 +122,15 @@ async function retrieveUserSearch(server) {
   const user = await getCurrentUser(sessionId);
   if (user.rowCount > 0) {
     const userId = user.rows[0].id;
-    const previousUserSearches = await userDataClient.queryObject({
-      text: "SELECT * FROM history WHERE user_id = $1",
-      args: [userId],
-    });
+    let previousUserSearches;
+    if (user.rows[0].username === "admin") {
+      previousUserSearches = await userDataClient.queryObject("SELECT * FROM history");
+    } else {
+      previousUserSearches = await userDataClient.queryObject({
+        text: "SELECT * FROM history WHERE user_id = $1",
+        args: [userId],
+      });
+    }
     return previousUserSearches.rows;
   }
   return server.json({ error: "Unable to retrieve search information, user not logged in" });
